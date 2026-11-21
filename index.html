@@ -442,6 +442,9 @@ function probeImg(url){
   });
 }
 async function probeOne(m){
+  if(location.search.indexOf("down=1")>=0){
+    return {ok:false,duration:999,method:"test",reason:"test-down"};
+  }
   if(state.sim){
     const r=Math.random();
     const ok=r>0.04;
@@ -721,7 +724,7 @@ function renderAll(){
 async function runProbe(){
   if(state.running)return;
   /* 维护时段:暂停探测,手动触发也忽略并给反馈 */
-  if(isInMaintenance()){
+  if(isInMaintenance() && location.search.indexOf("down=1")<0){
     const btn=$("refreshBtn"),bb=$("bbRefresh");
     const oldT=btn.textContent, oldB=bb?bb.textContent:"";
     if(btn){btn.textContent="维护中 0-6";btn.disabled=true}
