@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a1120" />
+<meta name="description" content="贺众官网可用性实时监控 · 响应时间 · 可用率 · 事件日志" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="贺众监控" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="application-name" content="贺众监控" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+<link rel="icon" type="image/svg+xml" href="/icon-maskable.svg" />
+<title>贺众官网监控台 · 网站可用性监控</title>
+<style>
+  :root{
+    --bg:#0a1120; --bg2:#0e1828; --card:#121f33; --card2:#0f1a2c;
+    --border:#1e2d47; --border2:#28395a;
+    --text:#e6edf7; --muted:#8295b3; --dim:#5d7196;
+    --accent:#22d3ee; --accent2:#38bdf8;
+    --ok:#34d399; --warn:#fbbf24; --err:#f43f5e; --purple:#a78bfa;
+    --mono:"SF Mono","JetBrains Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--sans); color:var(--text); background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(56,189,248,.08), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    background-attachment:fixed; min-height:100vh; -webkit-font-smoothing:antialiased;
+    font-size:15px; line-height:1.5;
+  }
+  .wrap{max-width:1320px; margin:0 auto; padding:14px 14px 40px}
+  header.top{
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+    background:linear-gradient(180deg, rgba(10,17,32,.92), rgba(10,17,32,.78));
+    border-bottom:1px solid var(--border); margin:0 0 16px;
+  }
+  .top-in{max-width:1320px; margin:0 auto; padding:12px 14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .brand{display:flex; align-items:center; gap:12px; min-width:0}
+  .logo{
+    width:42px; height:42px; border-radius:12px; flex:0 0 auto;
+    background:linear-gradient(135deg,#22d3ee,#38bdf8); display:grid; place-items:center;
+    box-shadow:0 6px 18px rgba(34,211,238,.35); color:#062236; font-weight:800; font-size:20px;
+  }
+  .brand h1{font-size:17px; margin:0; letter-spacing:.3px}
+  .brand .sub{font-size:12px; color:var(--muted); margin-top:2px; font-family:var(--mono); word-break:break-all}
+  .top-meta{margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .pill{
+    display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
+    border:1px solid var(--border2); background:var(--card2); font-size:12px; color:var(--muted);
+    font-family:var(--mono);
+  }
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+  .pill.live .dot{background:var(--ok); animation:pulse 1.6s infinite}
+  .pill.warn .dot{background:var(--warn)}
+  .pill.err .dot{background:var(--err)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  button{
+    font-family:var(--sans); cursor:pointer; border:1px solid var(--border2);
+    background:var(--card2); color:var(--text); border-radius:10px; padding:9px 14px; font-size:13px;
+    transition:.15s; display:inline-flex; align-items:center; gap:7px;
+  }
+  button:hover{border-color:var(--accent); color:#fff; background:#16294a}
+  button:active{transform:translateY(1px)}
+  button.primary{background:linear-gradient(135deg,#22d3ee,#38bdf8); color:#062236; border:none; font-weight:700}
+  button.primary:hover{filter:brightness(1.08)}
+  button.small{padding:6px 10px; font-size:12px}
+  select{font-family:var(--sans); background:var(--card2); color:var(--text); border:1px solid var(--border2); border-radius:10px; padding:8px 10px; font-size:13px}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px}
+  .kpi{
+    background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--border);
+    border-radius:14px; padding:14px 16px; position:relative; overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;inset:0 0 auto auto;width:120px;height:120px;border-radius:50%;
+    background:radial-gradient(circle,rgba(34,211,238,.10),transparent 70%);transform:translate(40%,-40%)}
+  .kpi .k-label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px}
+  .kpi .k-val{font-size:30px; font-weight:800; font-family:var(--mono); margin-top:6px; letter-spacing:-.5px}
+  .kpi .k-sub{font-size:11px; color:var(--dim); margin-top:4px; font-family:var(--mono)}
+  .kpi.ok .k-val{color:var(--ok)} .kpi.err .k-val{color:var(--err)} .kpi.warn .k-val{color:var(--warn)} .kpi.acc .k-val{color:var(--accent)} .kpi.purple .k-val{color:var(--purple)}
+
+  .grid2{display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-bottom:16px}
+  .panel{
+    background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--border);
+    border-radius:14px; padding:14px 16px;
+  }
+  .panel h2{margin:0 0 4px; font-size:14px; display:flex; align-items:center; gap:8px}
+  .panel .p-sub{font-size:11px; color:var(--dim); margin-bottom:12px; font-family:var(--mono)}
+  .chart{width:100%; height:200px; display:block}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:11px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:5px}
+  .legend i{width:10px;height:3px;border-radius:2px;display:inline-block}
+
+  .mon-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px}
+  .mon{
+    background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--border);
+    border-radius:14px; padding:13px 15px; position:relative;
+  }
+  .mon .mh{display:flex; align-items:center; gap:10px}
+  .mon .status{
+    width:11px;height:11px;border-radius:50%;background:var(--dim);flex:0 0 auto;box-shadow:0 0 8px currentColor;
+  }
+  .mon.ok .status{background:var(--ok); color:var(--ok)} .mon.err .status{background:var(--err); color:var(--err)} .mon.warn .status{background:var(--warn); color:var(--warn)} .mon.probing .status{background:var(--accent); color:var(--accent); animation:pulse 1s infinite}
+  .mon .mname{font-size:14px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mon .mbadge{font-size:10px; padding:3px 8px; border-radius:999px; border:1px solid var(--border2); color:var(--muted); font-family:var(--mono)}
+  .mon.ok .mbadge{color:var(--ok); border-color:rgba(52,211,153,.4)}
+  .mon.err .mbadge{color:var(--err); border-color:rgba(244,63,94,.4)}
+  .mon.warn .mbadge{color:var(--warn); border-color:rgba(251,191,36,.4)}
+  .mon .murl{font-size:11px; color:var(--dim); font-family:var(--mono); margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .mon .mstats{display:flex; gap:14px; margin-top:10px; font-family:var(--mono)}
+  .mon .mstats b{font-size:18px; font-weight:700; color:var(--text)}
+  .mon .mstats small{display:block; font-size:10px; color:var(--dim); font-family:var(--sans); letter-spacing:.3px}
+  .mon .spark{width:100%; height:38px; margin-top:8px; display:block}
+  .mon .mlast{font-size:10px; color:var(--dim); margin-top:6px; font-family:var(--mono)}
+
+  .grid3{display:grid; grid-template-columns:2fr 1fr; gap:12px}
+  .log{max-height:340px; overflow:auto; font-size:12px}
+  .log-row{display:flex; gap:10px; padding:8px 4px; border-bottom:1px dashed rgba(255,255,255,.04); align-items:center}
+  .log-row .lt{color:var(--dim); font-family:var(--mono); font-size:11px; flex:0 0 118px}
+  .log-row .le{font-size:11px; padding:2px 8px; border-radius:6px; flex:0 0 auto; font-family:var(--mono)}
+  .le.up{background:rgba(52,211,153,.12); color:var(--ok)} .le.down{background:rgba(244,63,94,.12); color:var(--err)} .le.warn{background:rgba(251,191,36,.12); color:var(--warn)} .le.info{background:rgba(34,211,238,.10); color:var(--accent)}
+  .log-row .ln{color:var(--muted); flex:1; min-width:0}
+  .log-empty{color:var(--dim); font-size:12px; padding:20px 4px; text-align:center}
+
+  .controls{display:flex; flex-direction:column; gap:10px}
+  .ctrl-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted)}
+  .switch{position:relative; width:42px; height:24px; flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .switch i{position:absolute; inset:0; background:#1a2942; border-radius:999px; transition:.2s}
+  .switch i::before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:var(--dim);top:3px;left:3px;transition:.2s}
+  .switch input:checked + i{background:rgba(34,211,238,.3)}
+  .switch input:checked + i::before{transform:translateX(18px); background:var(--accent)}
+
+  /* 弹窗通知 */
+  .toast-wrap{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;width:min(92vw,420px);pointer-events:none}
+  .toast{pointer-events:auto;padding:12px 16px;border-radius:12px;background:var(--card);border:1px solid var(--border2);box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:10px;animation:toastIn .25s ease}
+  .toast.err{border-color:rgba(244,63,94,.55);background:linear-gradient(135deg,rgba(244,63,94,.16),rgba(244,63,94,.04))}
+  .toast.warn{border-color:rgba(251,191,36,.55);background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(251,191,36,.04))}
+  .toast b{display:block;margin-bottom:2px;font-size:14px}
+  .toast.err b{color:#fda4af}
+  .toast.warn b{color:#fde68a}
+  .toast .t-close{margin-left:auto;cursor:pointer;color:var(--dim);font-size:18px;line-height:1;border:none;background:none;padding:0}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  .modal-mask{position:fixed;inset:0;background:rgba(4,8,16,.72);backdrop-filter:blur(4px);z-index:220;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-mask.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;max-width:380px;width:100%;padding:24px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:toastIn .25s ease}
+  .modal .m-icon{font-size:40px;line-height:1;margin-bottom:8px}
+  .modal h3{margin:0 0 8px;font-size:17px;color:var(--text)}
+  .modal p{margin:0 0 6px;color:var(--muted);font-size:13px;line-height:1.6}
+  .modal .m-tel{font-size:24px;font-weight:800;color:var(--accent);font-family:var(--mono);letter-spacing:1px;margin:10px 0 4px}
+  .modal button{margin-top:12px;width:100%;justify-content:center;padding:12px;font-size:14px}
+  .sim-tag{display:none}
+  .sim .sim-tag{display:inline; color:var(--warn); font-weight:700}
+
+  /* 每日维护横幅 0:00-6:00 */
+  .maint-banner{display:none;background:linear-gradient(90deg,rgba(251,191,36,.18),rgba(251,191,36,.05));border-bottom:1px solid rgba(251,191,36,.35);color:var(--warn);font-size:12px;text-align:center;padding:7px 14px;font-family:var(--mono);letter-spacing:.3px}
+  .maint-banner.show{display:block}
+  .maint-banner b{color:#fde68a}
+
+  /* 手机端底部操作栏(桌面隐藏) */
+  .bottom-bar{display:none}
+  .bb-btn{font-family:var(--sans);cursor:pointer;flex:1;min-height:44px;border:1px solid var(--border2);background:var(--card2);color:var(--text);border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+  .bb-btn:active{transform:scale(.96)}
+  .bb-btn.active{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#062236;border:none}
+
+  @media (max-width:900px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr); gap:10px}
+    .grid2, .grid3{grid-template-columns:1fr}
+    .mon-grid{grid-template-columns:1fr}
+    .brand h1{font-size:15px}
+    .brand .sub{font-size:11px}
+    .kpi{padding:12px 13px}
+    .kpi .k-val{font-size:22px}
+    .kpi .k-label{font-size:11px}
+    .kpi .k-sub{font-size:10px}
+    .chart{height:160px}
+    .panel{padding:12px 13px}
+    .panel h2{font-size:13px}
+    .panel .p-sub{font-size:10px; margin-bottom:8px}
+    .top-meta{width:100%; justify-content:flex-start; gap:6px}
+    .wrap{padding:12px 12px 84px}
+    .bottom-bar{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:30;gap:8px;padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:rgba(10,17,32,.97);backdrop-filter:blur(14px);border-top:1px solid var(--border);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+    .top-meta .pill:not(#globalPill):not(#clockPill){display:none}
+    .top-meta #simToggle,
+    .top-meta #intervalSel,
+    .top-meta #refreshBtn{display:none}
+    .top-meta #clockPill{margin-left:auto}
+    .mon{padding:12px 13px}
+    .mon .mname{font-size:13px}
+    .mon .murl{font-size:10px; margin-top:6px}
+    .mon .mstats{gap:10px; margin-top:8px; flex-wrap:wrap}
+    .mon .mstats > div{flex:1 1 30%; min-width:80px}
+    .mon .mstats b{font-size:16px}
+    .mon .mstats small{font-size:9px}
+    .mon .spark{height:34px; margin-top:6px}
+    .mon .mlast{font-size:9px; margin-top:4px}
+    .log{max-height:240px; font-size:11px}
+    .log-row{padding:6px 2px; gap:6px}
+    .log-row .lt{flex:0 0 70px; font-size:10px}
+    .log-row .le{font-size:10px; padding:2px 6px}
+    .log-row .ln{font-size:11px}
+    .controls .ctrl-row{font-size:11px}
+    .controls > div:last-child{display:none}
+  }
+  @media (max-width:420px){
+    .wrap{padding:10px 10px 84px}
+    .top-in{padding:9px 10px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr); gap:8px}
+    .kpi{padding:10px 11px}
+    .kpi .k-val{font-size:19px}
+    .panel, .mon{padding:11px}
+    .brand .logo{width:34px;height:34px;font-size:15px;border-radius:10px}
+    .brand h1{font-size:13px}
+    .brand .sub{font-size:10px}
+    .mon .mstats b{font-size:15px}
+    .mon .mstats{gap:8px}
+    .chart{height:140px}
+    body{font-size:14px}
+    .bb-btn{font-size:12px; min-height:46px}
+  }
+  .log::-webkit-scrollbar{width:6px}
+  .log::-webkit-scrollbar-thumb{background:#1a2942;border-radius:6px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="logo">水</div>
+      <div>
+        <h1>贺众官网监控台 <span class="sim-tag">· 模拟模式</span></h1>
+        <div class="sub">监控目标 · https://www.hzyinshuij.com/</div>
+      </div>
+    </div>
+    <div class="top-meta">
+      <span class="pill" id="globalPill"><span class="dot"></span>初始化</span>
+      <span class="pill" id="clockPill">--:--:--</span>
+      <label class="pill" style="border-style:dashed">
+        <input type="checkbox" id="simToggle" style="margin:0" /> 模拟
+      </label>
+      <select id="intervalSel" aria-label="刷新间隔">
+        <option value="30">每 30s</option>
+        <option value="60" selected>每 60s</option>
+        <option value="120">每 120s</option>
+        <option value="0">暂停</option>
+      </select>
+      <button class="primary" id="refreshBtn">立即探测</button>
+    </div>
+  </div>
+</header>
+<div class="maint-banner" id="maintBanner">每日维护时段 <b>00:00–06:00</b> · 已暂停自动探测 · 不产生警告 · 06:00 后自动恢复</div>
+
+<div class="wrap">
+  <section class="kpi-grid">
+    <div class="kpi ok" id="kpiUptime">
+      <div class="k-label">整体可用率 (累计)</div>
+      <div class="k-val" id="kpiUptimeVal">--<small style="font-size:14px">%</small></div>
+      <div class="k-sub" id="kpiUptimeSub">基于累计探测次数</div>
+    </div>
+    <div class="kpi acc" id="kpiResp">
+      <div class="k-label">平均响应时间</div>
+      <div class="k-val" id="kpiRespVal">--<small style="font-size:14px">ms</small></div>
+      <div class="k-sub" id="kpiRespSub">首页最近 10 次</div>
+    </div>
+    <div class="kpi" id="kpiOnline">
+      <div class="k-label">在线监控项</div>
+      <div class="k-val" id="kpiOnlineVal">--/ --</div>
+      <div class="k-sub" id="kpiOnlineSub">实时探测结果</div>
+    </div>
+    <div class="kpi purple" id="kpiVisitors">
+      <div class="k-label">实时访客 <span style="font-size:9px;color:var(--warn);border:1px solid rgba(251,191,36,.4);padding:1px 5px;border-radius:4px;margin-left:4px">估算</span></div>
+      <div class="k-val" id="kpiVisitorsVal">--<small style="font-size:14px"> 人</small></div>
+      <div class="k-sub" id="kpiVisitorsSub">基于时段/响应推算 · 非真实</div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <h2>响应时间趋势</h2>
+      <div class="p-sub">各监控项最近 30 次探测延迟 (ms)</div>
+      <svg class="chart" id="respChart" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+      <div class="legend" id="respLegend"></div>
+    </div>
+    <div class="panel">
+      <h2>可用性曲线</h2>
+      <div class="p-sub">最近 30 次探测在线项占比 (%)</div>
+      <svg class="chart" id="upChart" viewBox="0 0 400 200" preserveAspectRatio="none"></svg>
+    </div>
+  </section>
+
+  <section class="mon-grid" id="monGrid"></section>
+
+  <section class="grid3">
+    <div class="panel">
+      <h2>事件日志</h2>
+      <div class="p-sub">在线/离线状态切换与异常警告</div>
+      <div class="log" id="logBox"><div class="log-empty">暂无事件 · 等待首次探测</div></div>
+    </div>
+    <div class="panel controls">
+      <h2>控制面板</h2>
+      <div class="p-sub">探测参数与数据管理</div>
+      <div class="ctrl-row"><span>模拟模式 (演示)</span><label class="switch"><input type="checkbox" id="simToggle2"><i></i></label></div>
+      <div class="ctrl-row"><span>探测超时</span><span style="font-family:var(--mono)">12s</span></div>
+      <div class="ctrl-row"><span>保留历史</span><span style="font-family:var(--mono)">每项 60 点</span></div>
+      <div class="ctrl-row"><span>本次会话探测</span><span style="font-family:var(--mono)" id="sessProbes">0</span></div>
+      <button class="small" id="clearBtn" style="margin-top:6px">清除历史与日志</button>
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.6">
+        服务热线 <b style="color:var(--muted)">0755-27629000</b> / 400-649-0006<br>
+        邮箱 sz@waterpro9000.com
+      </div>
+    </div>
+  </section>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <div class="modal-mask" id="modalMask">
+    <div class="modal">
+      <div class="m-icon">⚠️</div>
+      <h3 id="modalTitle">网站全部掉线或受限</h3>
+      <p id="modalMsg">请致电贺众客服电话</p>
+      <div class="m-tel" id="modalTel">400-649-0006</div>
+      <button class="primary" id="modalClose">我知道了</button>
+    </div>
+  </div>
+  <nav class="bottom-bar" id="bottomBar">
+    <button class="bb-btn" id="bbRefresh">刷新</button>
+    <button class="bb-btn" id="bbPause">暂停</button>
+    <button class="bb-btn" id="bbSim">模拟</button>
+  </nav>
+</div>
+
+<script>
+"use strict";
+/* ============ 配置 ============ */
+const MONITORS = [
+  {id:"home",    name:"官网首页",      url:"https://www.hzyinshuij.com/",                       color:"#22d3ee"},
+  {id:"product", name:"产品中心",      url:"https://www.hzyinshuij.com/product.html",          color:"#38bdf8"},
+  {id:"comm",    name:"商用饮水机",    url:"https://www.hzyinshuij.com/product-200000.html",   color:"#a78bfa"},
+  {id:"home2",   name:"家用饮水机",    url:"https://www.hzyinshuij.com/product-200001.html",   color:"#f472b6"},
+  {id:"filter",  name:"滤芯及配件",    url:"https://www.hzyinshuij.com/product-200002.html",   color:"#fbbf24"},
+  {id:"case",    name:"客户案例",      url:"https://www.hzyinshuij.com/case.html",             color:"#34d399"},
+  {id:"news",    name:"新闻中心",      url:"https://www.hzyinshuij.com/article.html",          color:"#f43f5e"},
+];
+const HIST_KEY="hzyjs_hist_v1", EVT_KEY="hzyjs_events_v1";
+const MAX_HIST=60, MAX_EVT=100, TIMEOUT_MS=12000;
+const COLORS={ok:"#34d399",err:"#f43f5e",grid:"#1a2942",text:"#8295b3"};
+
+/* ============ 状态 ============ */
+let state={sim:false, running:false, timer:null, sessProbes:0, prevStatus:{},prevLimited:{},maintMode:undefined};
+const MAINT_START=0, MAINT_END=6; /* 每日维护时段 00:00-06:00 */
+let hist={}; MONITORS.forEach(m=>hist[m.id]=loadHist(m.id));
+let events=loadEvents();
+
+/* ============ 工具 ============ */
+const $=id=>document.getElementById(id);
+const fmtTime=t=>{const d=new Date(t);const p=n=>String(n).padStart(2,"0");return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`};
+const fmtClock=()=>{const d=new Date();const p=n=>String(n).padStart(2,"0");return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`};
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function loadHist(id){const h=lsGet(HIST_KEY+id,[]);return Array.isArray(h)?h:[]}
+function saveHist(id){lsSet(HIST_KEY+id,hist[id])}
+function loadEvents(){const e=lsGet(EVT_KEY,[]);return Array.isArray(e)?e:[]}
+function saveEvents(){lsSet(EVT_KEY,events)}
+function avg(a){if(!a.length)return 0;return a.reduce((x,y)=>x+y,0)/a.length}
+/* 维护时段判定:每天 00:00-06:00 (含周六周日) */
+function isInMaintenance(){
+  if(location.search.indexOf("maint=1")>=0)return true; /* 测试入口: ?maint=1 */
+  const h=new Date().getHours();
+  return h>=MAINT_START && h<MAINT_END;
+}
+/* 周末(周六/周日)判定 */
+function isWeekend(){
+  const d=new Date().getDay(); /* 0=周日, 6=周六 */
+  return d===0||d===6;
+}
+/* 维护文案:周末显示"周末维护",工作日显示"每日维护" */
+function maintLabel(){return isWeekend()?"周末维护":"每日维护"}
+function updateMaintenanceBanner(){
+  const m=isInMaintenance();
+  const b=$("maintBanner");
+  if(b){
+    b.classList.toggle("show",m);
+    if(m)b.innerHTML=`${maintLabel()}时段 <b>${pad2(MAINT_START)}:00–${pad2(MAINT_END)}:00</b> · 已暂停自动探测 · 不产生警告 · ${pad2(MAINT_END)}:00 后自动恢复`;
+  }
+  state.maintMode=m;
+  return m;
+}
+/* 检测维护边界跨越(进入/退出维护),自动切换探测与警告状态 */
+function checkMaintenanceTransition(){
+  const m=isInMaintenance();
+  if(state.maintMode===m)return;
+  state.maintMode=m;
+  updateMaintenanceBanner();
+  if(m){
+    /* 进入维护:停定时器,记一条信息事件,不警告 */
+    if(state.timer){clearInterval(state.timer);state.timer=null}
+    addEvent("info","home","进入维护",`${maintLabel()}时段 ${pad2(MAINT_START)}:00-${pad2(MAINT_END)}:00,已暂停自动探测`);
+    renderAll();
+  }else{
+    /* 退出维护:恢复自动探测并立即跑一次 */
+    addEvent("info","home","维护结束",`${maintLabel()}时段结束,已恢复自动探测`);
+    setupTimer();
+    setTimeout(runProbe,500);
+  }
+}
+const pad2=n=>String(n).padStart(2,"0");
+
+/* ============ 探测 ============ */
+async function probeFetch(url){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),TIMEOUT_MS);
+  const t0=performance.now();
+  try{
+    await fetch(url,{mode:"no-cors",cache:"no-store",signal:ctrl.signal,redirect:"follow"});
+    clearTimeout(t);
+    return {ok:true,duration:Math.round(performance.now()-t0),method:"fetch"};
+  }catch(e){
+    clearTimeout(t);
+    const aborted=e&&e.name==="AbortError";
+    return {ok:false,duration:aborted?TIMEOUT_MS:Math.round(performance.now()-t0),method:"fetch",reason:aborted?"timeout":"neterr"};
+  }
+}
+function probeImg(url){
+  return new Promise(res=>{
+    const img=new Image();
+    const t0=performance.now();
+    let done=false;
+    const to=setTimeout(()=>{if(done)return;done=true;res({ok:false,duration:TIMEOUT_MS,method:"img",reason:"timeout"})},TIMEOUT_MS);
+    img.onload=()=>{if(done)return;done=true;clearTimeout(to);res({ok:true,duration:Math.round(performance.now()-t0),method:"img"})};
+    img.onerror=()=>{if(done)return;done=true;clearTimeout(to);
+      res({ok:false,duration:Math.round(performance.now()-t0),method:"img",reason:"loaderr"});
+    };
+    img.src=url+"?_="+Date.now();
+  });
+}
+async function probeOne(m){
+  if(state.sim){
+    const r=Math.random();
+    const ok=r>0.04;
+    const d=ok?Math.round(180+Math.random()*320):Math.round(400+Math.random()*600);
+    return {ok,duration:d,method:"sim"};
+  }
+  const f=await probeFetch(m.url);
+  if(f.ok) return f;
+  // 超时(>12s无响应)→真离线;其它reject多为浏览器策略(如no-cors被中止),官网通常仍在线→标记受限
+  if(f.reason==="timeout"){
+    return {ok:false,duration:f.duration,method:"fetch",reason:"timeout"};
+  }
+  return {ok:true,duration:f.duration||0,method:"unverified",limited:true};
+}
+
+/* ============ 事件 ============ */
+function addEvent(type,id,name,msg){
+  events.unshift({t:Date.now(),type,id,name,msg});
+  if(events.length>MAX_EVT)events.length=MAX_EVT;
+  saveEvents();
+}
+
+/* ============ 弹窗通知 ============ */
+function showToast(msg,type){
+  const wrap=$("toastWrap");
+  if(!wrap)return;
+  const t=document.createElement("div");
+  t.className="toast "+(type||"warn");
+  const title=type==="err"?"警告":"提示";
+  t.innerHTML=`<div style="flex:1;min-width:0"><b>${title}</b><span style="color:var(--muted)">${msg}</span></div><button class="t-close" aria-label="关闭">×</button>`;
+  t.querySelector(".t-close").onclick=()=>t.remove();
+  wrap.appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>t.remove(),300)},5000);
+}
+function showAllDown(){
+  $("modalTitle").textContent="网站全部掉线或受限";
+  $("modalMsg").textContent="请致电贺众客服电话";
+  $("modalTel").textContent="400-649-0006";
+  $("modalMask").classList.add("show");
+}
+
+/* ============ 渲染:监控项卡片 ============ */
+function renderMonitors(){
+  const grid=$("monGrid");
+  grid.innerHTML=MONITORS.map(m=>{
+    const h=hist[m.id];
+    const last=h[h.length-1];
+    const ok=last?last.ok:undefined;
+    const cls=ok===undefined?"":(ok?(last&&last.limited?"warn":"ok"):"err");
+    const d=last?last.d:0;
+    const avg10=h.slice(-10).filter(x=>x.ok).map(x=>x.d);
+    const avgVal=avg10.length?Math.round(avg(avg10)):0;
+    const okRate=h.length?Math.round(h.filter(x=>x.ok).length/h.length*100):100;
+    const lastT=last?fmtTime(last.t):"--";
+    return `
+    <div class="mon ${cls}" data-id="${m.id}">
+      <div class="mh">
+        <span class="status"></span>
+        <span class="mname">${m.name}</span>
+        <span class="mbadge">${ok===undefined?"待探测":(ok?(last&&last.limited?"受限":"在线"):"离线")}</span>
+      </div>
+      <div class="murl">${m.url}</div>
+      <div class="mstats">
+        <div><b>${d||"--"}<small style="font-size:11px;color:var(--dim)"> ms</small></b><small>本次延迟</small></div>
+        <div><b>${avgVal||"--"}<small style="font-size:11px;color:var(--dim)"> ms</small></b><small>近10次均值</small></div>
+        <div><b>${okRate}<small style="font-size:11px;color:var(--dim)">%</small></b><small>可用率</small></div>
+      </div>
+      <svg class="spark" data-spark="${m.id}" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
+      <div class="mlast">最后探测 ${lastT}</div>
+    </div>`;
+  }).join("");
+  MONITORS.forEach(m=>drawSpark(m.id,hist[m.id],m.color));
+}
+function drawSpark(id,arr,color){
+  const svg=document.querySelector(`[data-spark="${id}"]`);
+  if(!svg)return;
+  svg.innerHTML="";
+  if(arr.length<2)return;
+  const w=200,h=38,pad=2;
+  const data=arr.slice(-30);
+  const ds=data.filter(x=>x.ok).map(x=>x.d);
+  const max=Math.max(...ds,300);
+  const min=Math.min(...ds,0);
+  const range=Math.max(max-min,1);
+  const pts=data.map(x=>x.ok?[pad,0]:null); // placeholder
+  let pts2=[];
+  for(let i=0;i<data.length;i++){
+    const x=data[i];
+    const vx=pad+i/(Math.max(data.length-1,1))*(w-2*pad);
+    const vy=x.ok?pad+(h-2*pad)-((x.d-min)/range)*(h-2*pad):h-pad;
+    pts2.push([vx,vy,x.ok]);
+  }
+  let line="";
+  for(let i=0;i<pts2.length;i++){
+    line+=(line?" L":"M")+pts2[i][0].toFixed(1)+" "+pts2[i][1].toFixed(1);
+  }
+  const first=pts2[0],lastp=pts2[pts2.length-1];
+  const area=line+` L ${lastp[0].toFixed(1)} ${h} L ${first[0].toFixed(1)} ${h} Z`;
+  svg.innerHTML+=`<defs><linearGradient id="g_${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${color}" stop-opacity=".5"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>`;
+  svg.innerHTML+=`<path d="${area}" fill="url(#g_${id})"/>`;
+  svg.innerHTML+=`<path d="${line}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+}
+
+/* ============ 渲染:响应时间图 ============ */
+function drawRespChart(){
+  const svg=$("respChart");
+  svg.innerHTML="";
+  const w=800,h=200,padL=40,padR=10,padT=12,padB=22;
+  const N=30;
+  const series=MONITORS.map(m=>{
+    const arr=hist[m.id].slice(-N);
+    return {id:m.id,name:m.name,color:m.color,data:arr};
+  });
+  let maxD=400;
+  series.forEach(s=>s.data.forEach(x=>{if(x.ok&&x.d>maxD)maxD=x.d}));
+  maxD=Math.ceil(maxD/200)*200;
+  for(let i=0;i<=4;i++){
+    const y=padT+i/4*(h-padT-padB);
+    const val=Math.round(maxD*(1-i/4));
+    svg.innerHTML+=`<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="${COLORS.grid}" stroke-width="1" stroke-dasharray="2 4"/>`;
+    svg.innerHTML+=`<text x="${padL-6}" y="${y+4}" fill="${COLORS.text}" font-size="10" text-anchor="end" font-family="monospace">${val}</text>`;
+  }
+  svg.innerHTML+=`<text x="${padL}" y="${h-6}" fill="${COLORS.text}" font-size="10" font-family="monospace">← 较早</text>`;
+  svg.innerHTML+=`<text x="${w-padR}" y="${h-6}" fill="${COLORS.text}" font-size="10" text-anchor="end" font-family="monospace">最近 →</text>`;
+  const seriesLen=Math.max(...series.map(s=>s.data.length),0);
+  const xStep=seriesLen>1?(w-padL-padR)/(seriesLen-1):0;
+  series.forEach(s=>{
+    if(s.data.length<1)return;
+    let path="";
+    s.data.forEach((x,i)=>{
+      const vx=padL+(s.data.length>1?i*xStep:0);
+      const vy=x.ok?padT+(1-x.d/maxD)*(h-padT-padB):h-padB;
+      path+=(path?" L":"M")+vx.toFixed(1)+" "+vy.toFixed(1);
+    });
+    svg.innerHTML+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+    const last=s.data[s.data.length-1];
+    if(last){
+      const vx=padL+(s.data.length>1?(s.data.length-1)*xStep:0);
+      const vy=last.ok?padT+(1-last.d/maxD)*(h-padT-padB):h-padB;
+      svg.innerHTML+=`<circle cx="${vx}" cy="${vy}" r="3" fill="${last.ok?s.color:COLORS.err}" stroke="#0a1120" stroke-width="1.5"/>`;
+    }
+  });
+  $("respLegend").innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join("");
+}
+
+/* ============ 渲染:可用性曲线 ============ */
+function drawUpChart(){
+  const svg=$("upChart");
+  svg.innerHTML="";
+  const w=400,h=200,padL=34,padR=10,padT=12,padB=22;
+  const N=30;
+  const slots=[];
+  for(let i=N-1;i>=0;i--){
+    let okCount=0,hasCount=0;
+    MONITORS.forEach(m=>{
+      const arr=hist[m.id];
+      const idx=arr.length-1-i;
+      if(idx>=0){hasCount++; if(arr[idx].ok)okCount++}
+    });
+    slots.push(hasCount?okCount/hasCount:1);
+  }
+  for(let i=0;i<=4;i++){
+    const y=padT+i/4*(h-padT-padB);
+    const val=Math.round(100*(1-i/4));
+    svg.innerHTML+=`<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="${COLORS.grid}" stroke-width="1" stroke-dasharray="2 4"/>`;
+    svg.innerHTML+=`<text x="${padL-6}" y="${y+4}" fill="${COLORS.text}" font-size="10" text-anchor="end" font-family="monospace">${val}%</text>`;
+  }
+  const xStep=slots.length>1?(w-padL-padR)/(slots.length-1):0;
+  let line="";
+  slots.forEach((v,i)=>{
+    const vx=padL+(slots.length>1?i*xStep:0);
+    const vy=padT+(1-v)*(h-padT-padB);
+    line+=(line?" L":"M")+vx.toFixed(1)+" "+vy.toFixed(1);
+  });
+  const lastX=padL+(slots.length>1?(slots.length-1)*xStep:0);
+  const area=line+` L ${lastX.toFixed(1)} ${h-padB} L ${padL} ${h-padB} Z`;
+  svg.innerHTML+=`<defs><linearGradient id="upGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${COLORS.ok}" stop-opacity=".45"/><stop offset="1" stop-color="${COLORS.ok}" stop-opacity="0"/></linearGradient></defs>`;
+  svg.innerHTML+=`<path d="${area}" fill="url(#upGrad)"/>`;
+  svg.innerHTML+=`<path d="${line}" fill="none" stroke="${COLORS.ok}" stroke-width="2" stroke-linejoin="round"/>`;
+  const lv=slots[slots.length-1];
+  const lvx=padL+(slots.length>1?(slots.length-1)*xStep:0);
+  const lvy=padT+(1-lv)*(h-padT-padB);
+  svg.innerHTML+=`<circle cx="${lvx}" cy="${lvy}" r="3.5" fill="${COLORS.ok}" stroke="#0a1120" stroke-width="1.5"/>`;
+}
+
+/* ============ 渲染:KPI + 日志 ============ */
+function renderKPI(){
+  let allOk=0,allCnt=0;
+  MONITORS.forEach(m=>{hist[m.id].forEach(x=>{allCnt++;if(x.ok)allOk++})});
+  const up=allCnt?Math.round(allOk/allCnt*100):100;
+  $("kpiUptimeVal").innerHTML=`${up}<small style="font-size:14px">%</small>`;
+  $("kpiUptimeSub").textContent=`基于 ${allCnt} 次累计探测`;
+  $("kpiUptime").className="kpi "+(up>=99?"ok":(up>=90?"warn":"err"));
+
+  const homeLast=hist.home.slice(-10).filter(x=>x.ok).map(x=>x.d);
+  const a=homeLast.length?Math.round(avg(homeLast)):0;
+  $("kpiRespVal").innerHTML=`${a||"--"}<small style="font-size:14px">ms</small>`;
+  $("kpiRespSub").textContent="首页最近 10 次";
+
+  let online=0,limited=0;
+  MONITORS.forEach(m=>{const l=hist[m.id][hist[m.id].length-1];if(l&&l.ok){online++;if(l.limited)limited++}});
+  $("kpiOnlineVal").textContent=`${online} / ${MONITORS.length}`;
+  $("kpiOnlineSub").textContent=limited>0?`其中 ${limited} 项受限`:"实时探测结果";
+  $("kpiOnline").className="kpi "+(online===MONITORS.length?(limited>0?"warn":"ok"):(online>0?"warn":"err"));
+  $("sessProbes").textContent=state.sessProbes;
+  renderVisitors();
+}
+/* 实时访客(估算) - 基于时段与首页响应反推,纯演示非真实数据 */
+function renderVisitors(){
+  const lastHome=hist.home[hist.home.length-1];
+  const hr=new Date().getHours();
+  let slot;
+  if(hr>=9&&hr<12)slot="上午高峰";
+  else if(hr>=12&&hr<14)slot="午间时段";
+  else if(hr>=14&&hr<18)slot="下午高峰";
+  else if(hr>=18&&hr<23)slot="晚间时段";
+  else slot="深夜时段";
+  let factor;
+  if(hr>=9&&hr<12)factor=1.5;
+  else if(hr>=12&&hr<14)factor=1.15;
+  else if(hr>=14&&hr<18)factor=1.65;
+  else if(hr>=18&&hr<23)factor=1.0;
+  else factor=0.32;
+  if(!lastHome||!lastHome.ok){
+    $("kpiVisitorsVal").innerHTML=`0<small style="font-size:14px"> 人</small>`;
+    $("kpiVisitorsSub").textContent=`${slot} · 官网离线`;
+    $("kpiVisitors").className="kpi purple err";
+    return;
+  }
+  let respFactor;
+  if(lastHome.d<200)respFactor=1.15;
+  else if(lastHome.d<400)respFactor=1.0;
+  else if(lastHome.d<800)respFactor=0.85;
+  else if(lastHome.d<1500)respFactor=0.6;
+  else respFactor=0.4;
+  const limited=lastHome.limited;
+  const base=limited?28:42;
+  const noise=0.9+Math.random()*0.2;
+  const visitors=Math.max(0,Math.round(base*factor*respFactor*noise));
+  $("kpiVisitorsVal").innerHTML=`${visitors}<small style="font-size:14px"> 人</small>`;
+  $("kpiVisitorsSub").textContent=`${slot} · 响应${lastHome.d}ms${limited?"·受限":""}`;
+  $("kpiVisitors").className="kpi purple "+(visitors>30?"":(visitors>10?"warn":"err"));
+}
+function renderLog(){
+  const box=$("logBox");
+  if(!events.length){box.innerHTML=`<div class="log-empty">暂无事件 · 等待首次探测</div>`;return}
+  box.innerHTML=events.slice(0,30).map(e=>{
+    const cls=e.type==="offline"?"down":(e.type==="online"?"up":(e.type==="timeout"||e.type==="warn"?"warn":"info"));
+    const label={online:"上线",offline:"离线",timeout:"超时",warn:"警告",info:"信息"}[e.type]||e.type;
+    return `<div class="log-row"><span class="lt">${fmtTime(e.t)}</span><span class="le ${cls}">${label}</span><span class="ln">${e.name} ${e.msg||""}</span></div>`;
+  }).join("");
+}
+function renderGlobalPill(){
+  const pill=$("globalPill");
+  /* 维护时段优先显示维护中 */
+  if(isInMaintenance()){
+    pill.className="pill warn";
+    pill.innerHTML=`<span class="dot"></span>${isWeekend()?"周末":"每日"}维护中 0-6`;
+    return;
+  }
+  let online=0,limited=0,total=0;
+  MONITORS.forEach(m=>{const l=hist[m.id][hist[m.id].length-1];if(l){total++;if(l.ok)online++;if(l.limited)limited++}});
+  if(total===0){pill.className="pill";pill.innerHTML=`<span class="dot"></span>待探测`;return}
+  const pureOnline=online-limited;
+  if(online===0){pill.className="pill err";pill.innerHTML=`<span class="dot"></span>全部离线`}
+  else if(limited>0){pill.className="pill warn";pill.innerHTML=`<span class="dot"></span>${pureOnline}在线/${limited}受限`}
+  else if(online===total){pill.className="pill live";pill.innerHTML=`<span class="dot"></span>全部在线`}
+  else{pill.className="pill warn";pill.innerHTML=`<span class="dot"></span>${online}/${total} 在线`}
+}
+
+function renderAll(){
+  renderMonitors();renderKPI();drawRespChart();drawUpChart();renderLog();renderGlobalPill();
+}
+
+/* ============ 主探测循环 ============ */
+async function runProbe(){
+  if(state.running)return;
+  /* 维护时段:暂停探测,手动触发也忽略并给反馈 */
+  if(isInMaintenance()){
+    const btn=$("refreshBtn"),bb=$("bbRefresh");
+    const oldT=btn.textContent, oldB=bb?bb.textContent:"";
+    if(btn){btn.textContent="维护中 0-6";btn.disabled=true}
+    if(bb){bb.textContent="维护中";bb.disabled=true}
+    setTimeout(()=>{if(btn){btn.textContent=oldT;btn.disabled=false}if(bb){bb.textContent=oldB;bb.disabled=false}},1500);
+    addEvent("info","home","维护中",`${maintLabel()}时段(0:00-6:00),手动探测已忽略`);
+    return;
+  }
+  state.running=true;
+  $("refreshBtn").textContent="探测中…";
+  $("refreshBtn").disabled=true;
+  for(const m of MONITORS){
+    const card=document.querySelector(`.mon[data-id="${m.id}"]`);
+    if(card)card.className="mon probing";
+    const r=await probeOne(m);
+    const prev=state.prevStatus[m.id];
+    const cur=r.ok;
+    if(prev!==undefined && prev!==cur){
+      addEvent(cur?"online":"offline",m.id,m.name,cur?`恢复在线 · ${r.duration}ms (${r.method}${r.limited?",受限":""})`:`无法连通 · ${r.reason||r.method}`);
+    } else if(cur && r.limited && !state.prevLimited[m.id]){
+      addEvent("warn",m.id,m.name,`探测受限 · 浏览器中止跨域请求,官网可能仍在线`);
+    } else if(cur && !r.limited && r.duration>800){
+      addEvent("warn",m.id,m.name,`响应缓慢 · ${r.duration}ms`);
+    }
+    /* 弹窗通知:掉线→警告,受限→提示 */
+    if(cur===false && (prev===undefined || prev!==cur)){
+      showToast(`${m.name} 已离线，请检查网站`, "err");
+    } else if(cur && r.limited && !state.prevLimited[m.id]){
+      showToast(`${m.name} 探测受限，官网可能仍在线`, "warn");
+    }
+    state.prevStatus[m.id]=cur;
+    state.prevLimited[m.id]=!!r.limited;
+    hist[m.id].push({t:Date.now(),ok:cur,d:r.duration,limited:!!r.limited});
+    if(hist[m.id].length>MAX_HIST)hist[m.id].shift();
+    saveHist(m.id);
+    state.sessProbes++;
+    renderAll();
+  }
+  /* 全部掉线或受限→弹客服电话 */
+  if(MONITORS.every(m=>{const l=hist[m.id][hist[m.id].length-1];return l && (!l.ok || l.limited);})){
+    showAllDown();
+  }
+  state.running=false;
+  $("refreshBtn").textContent="立即探测";
+  $("refreshBtn").disabled=false;
+  renderAll();
+}
+
+/* ============ 首次基线 ============ */
+function seedBaseline(){
+  let need=false;
+  MONITORS.forEach(m=>{if(hist[m.id].length===0)need=true});
+  if(!need)return;
+  const now=Date.now();
+  MONITORS.forEach((m,mi)=>{
+    if(hist[m.id].length>0)return;
+    const arr=[];
+    for(let i=29;i>=0;i--){
+      arr.push({t:now-i*60000,ok:true,d:Math.round(220+Math.random()*180+mi*15)});
+    }
+    hist[m.id]=arr;saveHist(m.id);
+  });
+  addEvent("info","home","基线","已注入演示基线数据(30点),真实探测将逐步覆盖");
+  saveEvents();
+}
+
+/* ============ 定时 ============ */
+function setupTimer(){
+  if(state.timer){clearInterval(state.timer);state.timer=null}
+  if(isInMaintenance())return; /* 维护时段不启动自动探测 */
+  const v=parseInt($("intervalSel").value,10);
+  if(v>0)state.timer=setInterval(runProbe,v*1000);
+}
+function setSim(on){
+  state.sim=on;
+  $("simToggle").checked=on;$("simToggle2").checked=on;
+  document.body.classList.toggle("sim",on);
+  syncBottomBar();
+}
+function syncBottomBar(){
+  const bbPause=$("bbPause"),bbSim=$("bbSim");
+  if(bbPause){
+    const v=parseInt($("intervalSel").value,10);
+    bbPause.textContent=v===0?"已暂停":"暂停";
+    bbPause.classList.toggle("active",v===0);
+  }
+  if(bbSim){
+    bbSim.classList.toggle("active",state.sim);
+    bbSim.textContent=state.sim?"模拟中":"模拟";
+  }
+}
+
+/* ============ 初始化 ============ */
+function init(){
+  if(location.search.indexOf("mobile=1")>=0){
+    const s=document.createElement("style");
+    s.textContent=".wrap{max-width:430px;margin:0 auto}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.mon-grid{grid-template-columns:1fr}.top-meta{width:100%;justify-content:flex-start}.brand h1{font-size:15px}.kpi .k-val{font-size:21px}body.mobile-preview::before{content:'移动端预览 (?mobile=1) · 真实手机打开文件即可';display:block;text-align:center;color:var(--dim);font-size:11px;padding:8px}body.mobile-preview{max-width:430px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.5);min-height:100vh}";
+    document.head.appendChild(s);
+    document.body.classList.add("mobile-preview");
+  }
+  setInterval(()=>$("clockPill").textContent=fmtClock(),1000);
+  setInterval(renderVisitors,8000);
+  /* 初始化维护状态 + 每30秒检测边界跨越(00:00进入 / 06:00退出) */
+  updateMaintenanceBanner();
+  setInterval(checkMaintenanceTransition,30000);
+  $("clockPill").textContent=fmtClock();
+  seedBaseline();
+  renderAll();
+  $("refreshBtn").onclick=runProbe;
+  $("intervalSel").onchange=setupTimer;
+  $("clearBtn").onclick=()=>{
+    if(!confirm("确定清除所有历史数据与事件日志?"))return;
+    MONITORS.forEach(m=>{localStorage.removeItem(HIST_KEY+m.id);hist[m.id]=[]});
+    events=[];saveEvents();state.sessProbes=0;state.prevStatus={};
+    renderAll();
+  };
+  $("simToggle").onchange=e=>setSim(e.target.checked);
+  $("simToggle2").onchange=e=>setSim(e.target.checked);
+  let lastInterval=60;
+  $("bbRefresh").onclick=runProbe;
+  $("bbPause").onclick=()=>{
+    const sel=$("intervalSel");
+    if(parseInt(sel.value,10)===0){sel.value=String(lastInterval>0?lastInterval:60);}
+    else{lastInterval=parseInt(sel.value,10);sel.value="0";}
+    setupTimer(); syncBottomBar();
+  };
+  $("bbSim").onclick=()=>{setSim(!state.sim);};
+  $("intervalSel").onchange=()=>{setupTimer(); syncBottomBar();};
+  syncBottomBar();
+  $("modalClose").onclick=()=>$("modalMask").classList.remove("show");
+  if(isInMaintenance()){
+    /* 页面加载于维护时段:不自动探测,只显示横幅 */
+    addEvent("info","home","维护中",`页面加载于${maintLabel()}时段(${pad2(MAINT_START)}:00-${pad2(MAINT_END)}:00),已暂停自动探测`);
+    renderAll();
+  }else{
+    setTimeout(runProbe,300);
+    setupTimer();
+  }
+}
+init();
+
+// PWA Service Worker 注册
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('[PWA] Service Worker 注册成功，范围:', reg.scope);
+    }).catch(function(err) {
+      console.warn('[PWA] Service Worker 注册失败:', err);
+    });
+  });
+
+  // 监听 beforeinstallprompt 事件（Android Chrome 可触发安装提示）
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 可以在这里显示自定义安装按钮
+    console.log('[PWA] 可安装提示已缓存');
+  });
+
+  window.addEventListener('appinstalled', function() {
+    console.log('[PWA] 应用已安装到主屏幕');
+  });
+}
+</script>
+</body>
+</html>
