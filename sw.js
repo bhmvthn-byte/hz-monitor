@@ -1,7 +1,7 @@
 // 贺众监控台 Service Worker
 // 缓存策略：页面文件网络优先（失败回退缓存），其他资源走网络
 
-const CACHE_NAME = 'trae-monitor-v5';
+const CACHE_NAME = 'trae-monitor-v6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -9,7 +9,8 @@ const ASSETS = [
   '/icon-180.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/icon-maskable.svg'
+  '/icon-maskable.svg',
+  '/hz-logo.png'
 ];
 
 // 安装：预缓存核心资源
