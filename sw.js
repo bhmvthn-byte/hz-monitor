@@ -41,7 +41,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 请求拦截：核心页面走缓存优先，其他走网络优先
+// 请求拦截：HTML 走网络优先，图标等静态资源走缓存优先
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
