@@ -463,11 +463,14 @@ async function probeOne(m){
   }
   const f=await probeFetch(m.url);
   if(f.ok) return f;
-  // 超时(>12s无响应)→真离线;其它reject多为浏览器策略(如no-cors被中止),官网通常仍在线→标记受限
-  if(f.reason==="timeout"){
-    return {ok:false,duration:f.duration,method:"fetch",reason:"timeout"};
+  // fetch 失败：用站点 favicon 图片交叉验证，避免 iOS 浏览器跨域策略把「在线」误判成「离线」
+  const img=await probeImg("https://www.yinshuij.com/favicon.ico");
+  if(img.ok){
+    // favicon 能加载 → 网站服务器在线，是手机浏览器限制导致 fetch 失败 → 标记「受限」而非离线
+    return {ok:true,duration:img.duration,method:"favicon",limited:true};
   }
-  return {ok:true,duration:f.duration||0,method:"unverified",limited:true};
+  // fetch 与图片都失败 → 判定为离线
+  return {ok:false,duration:f.duration||img.duration,method:"fetch+img",reason:f.reason||"down"};
 }
 
 /* ============ 事件 ============ */
@@ -490,7 +493,7 @@ function showToast(msg,type){
   setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>t.remove(),300)},5000);
 }
 function showAllDown(){
-  $("modalTitle").textContent="网站全部掉线或受限";
+  $("modalTitle").textContent="网站全部掉线";
   $("modalMsg").textContent="请致电贺众客服电话";
   $("modalTel").textContent="400-649-0006";
   $("modalMask").classList.add("show");
@@ -721,6 +724,7 @@ function renderGlobalPill(){
   if(total===0){pill.className="pill";pill.innerHTML=`<span class="dot"></span>待探测`;return}
   const pureOnline=online-limited;
   if(online===0){pill.className="pill err";pill.innerHTML=`<span class="dot"></span>全部离线`}
+  else if(pureOnline===0 && limited>0){pill.className="pill warn";pill.innerHTML=`<span class="dot"></span>受限 · 官网可能在线`}
   else if(limited>0){pill.className="pill warn";pill.innerHTML=`<span class="dot"></span>${pureOnline}在线/${limited}受限`}
   else if(online===total){pill.className="pill live";pill.innerHTML=`<span class="dot"></span>全部在线`}
   else{pill.className="pill warn";pill.innerHTML=`<span class="dot"></span>${online}/${total} 在线`}
@@ -773,8 +777,8 @@ async function runProbe(){
     state.sessProbes++;
     renderAll();
   }
-  /* 全部掉线或受限→弹客服电话 */
-  if(MONITORS.every(m=>{const l=hist[m.id][hist[m.id].length-1];return l && (!l.ok || l.limited);})){
+  /* 全部真正掉线(非受限)→弹客服电话 */
+  if(MONITORS.every(m=>{const l=hist[m.id][hist[m.id].length-1];return l && !l.ok;})){
     showAllDown();
   }
   state.running=false;
