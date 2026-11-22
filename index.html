@@ -91,19 +91,21 @@
   .grid2{display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-bottom:16px}
   .panel{
     background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--border);
-    border-radius:14px; padding:14px 16px;
+    border-radius:14px; padding:14px 16px; min-width:0; overflow:hidden;
   }
   .panel h2{margin:0 0 4px; font-size:14px; display:flex; align-items:center; gap:8px}
   .panel .p-sub{font-size:11px; color:var(--dim); margin-bottom:12px; font-family:var(--mono)}
-  .chart{width:100%; height:200px; display:block}
+  .chart{width:100%; height:auto; display:block}
+  #respChart{aspect-ratio:4/1}
+  #upChart{aspect-ratio:2/1}
   .legend{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:11px; color:var(--muted)}
   .legend span{display:inline-flex; align-items:center; gap:5px}
   .legend i{width:10px;height:3px;border-radius:2px;display:inline-block}
 
-  .mon-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px}
+  .mon-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px; min-width:0}
   .mon{
     background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--border);
-    border-radius:14px; padding:13px 15px; position:relative;
+    border-radius:14px; padding:13px 15px; position:relative; min-width:0; overflow:hidden;
   }
   .mon .mh{display:flex; align-items:center; gap:10px}
   .mon .status{
@@ -183,7 +185,7 @@
     .kpi .k-val{font-size:22px}
     .kpi .k-label{font-size:11px}
     .kpi .k-sub{font-size:10px}
-    .chart{height:160px}
+    .chart{height:auto}
     .legend{gap:6px; margin-top:8px; font-size:10px}
     .legend span{gap:4px}
     .legend i{width:8px}
@@ -226,7 +228,7 @@
     .brand .sub{font-size:10px}
     .mon .mstats b{font-size:15px}
     .mon .mstats{gap:8px}
-    .chart{height:140px}
+    .chart{height:auto}
     body{font-size:14px}
     .bb-btn{font-size:12px; min-height:46px}
   }
