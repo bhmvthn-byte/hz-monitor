@@ -171,6 +171,7 @@
   .bb-btn{font-family:var(--sans);cursor:pointer;flex:1;min-height:44px;border:1px solid var(--border2);background:var(--card2);color:var(--text);border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
   .bb-btn:active{transform:scale(.96)}
   .bb-btn.active{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#062236;border:none}
+  .bb-select{font-family:var(--sans);cursor:pointer;flex:0 0 auto;min-height:44px;border:1px solid var(--border2);background:var(--card2);color:var(--text);border-radius:12px;font-size:13px;font-weight:600;padding:0 8px}
 
   @media (max-width:900px){
     .kpi-grid{grid-template-columns:repeat(2,1fr); gap:10px}
@@ -209,7 +210,6 @@
     .log-row .le{font-size:10px; padding:2px 6px}
     .log-row .ln{font-size:11px}
     .controls .ctrl-row{font-size:11px}
-    .controls > div:last-child{display:none}
   }
   @media (max-width:420px){
     .wrap{padding:10px 10px 84px}
@@ -331,6 +331,12 @@
     </div>
   </div>
   <nav class="bottom-bar" id="bottomBar">
+    <select class="bb-select" id="intervalSelMob" aria-label="刷新间隔">
+      <option value="30">30s</option>
+      <option value="60" selected>60s</option>
+      <option value="120">120s</option>
+      <option value="0">暂停</option>
+    </select>
     <button class="bb-btn" id="bbRefresh">刷新</button>
     <button class="bb-btn" id="bbPause">暂停</button>
     <button class="bb-btn" id="bbSim">模拟</button>
@@ -815,6 +821,8 @@ function syncBottomBar(){
     bbSim.classList.toggle("active",state.sim);
     bbSim.textContent=state.sim?"模拟中":"模拟";
   }
+  const sm=$("intervalSelMob");
+  if(sm)sm.value=$("intervalSel").value;
 }
 
 /* ============ 初始化 ============ */
@@ -853,6 +861,7 @@ function init(){
   };
   $("bbSim").onclick=()=>{setSim(!state.sim);};
   $("intervalSel").onchange=()=>{setupTimer(); syncBottomBar();};
+  $("intervalSelMob").onchange=()=>{ $("intervalSel").value=$("intervalSelMob").value; setupTimer(); syncBottomBar(); };
   syncBottomBar();
   $("modalClose").onclick=()=>$("modalMask").classList.remove("show");
   if(isInMaintenance()){
