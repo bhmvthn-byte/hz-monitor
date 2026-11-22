@@ -18,7 +18,7 @@ jobs:
         run: |
           set -uo pipefail
           SITES=(
-            "官网首页|https://www.hzyinshuij.com/"
+            "官网首页|https://www.hzyinshuij.com/__test_down__"
             "产品中心|https://www.hzyinshuij.com/product.html"
             "商用饮水机|https://www.hzyinshuij.com/product-200000.html"
             "家用饮水机|https://www.hzyinshuij.com/product-200001.html"
