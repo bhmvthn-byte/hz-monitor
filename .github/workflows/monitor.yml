@@ -28,13 +28,13 @@ jobs:
         run: |
           set -uo pipefail
           SITES=(
-            "官网首页|https://www.hzyinshuij.com/"
-            "产品中心|https://www.hzyinshuij.com/product.html"
-            "商用饮水机|https://www.hzyinshuij.com/product-200000.html"
-            "家用饮水机|https://www.hzyinshuij.com/product-200001.html"
-            "滤芯及配件|https://www.hzyinshuij.com/product-200002.html"
-            "客户案例|https://www.hzyinshuij.com/case.html"
-            "新闻中心|https://www.hzyinshuij.com/article.html"
+            "官网首页|https://www.yinshuij.com/"
+            "产品中心|https://www.yinshuij.com/products.html"
+            "商用饮水机|https://www.yinshuij.com/products/intelligent-direct-drinking-machine.html"
+            "家用饮水机|https://www.yinshuij.com/products/household-water-purifier.html"
+            "滤芯及配件|https://www.yinshuij.com/products/filter-element-accessories.html"
+            "客户案例|https://www.yinshuij.com/cases.html"
+            "新闻中心|https://www.yinshuij.com/news.html"
           )
           DOWN=""
           SLOW=""
