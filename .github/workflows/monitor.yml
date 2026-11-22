@@ -4,6 +4,15 @@ on:
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: '测试模式'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - normal
+          - all_down
 
 permissions:
   contents: read
@@ -15,6 +24,7 @@ jobs:
       - name: 检查站点并推送飞书告警
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          TEST_MODE: ${{ github.event.inputs.test_mode || 'normal' }}
         run: |
           set -uo pipefail
           SITES=(
@@ -28,32 +38,43 @@ jobs:
           )
           DOWN=""
           SLOW=""
-          for item in "${SITES[@]}"; do
-            name="${item%%|*}"
-            url="${item#*|}"
-            resp=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" -L --max-time 15 "$url" 2>/dev/null)
-            code=${resp%% *}
-            t=${resp#* }
-            if [ "$code" != "200" ] || [ -z "$code" ]; then
-              DOWN="${DOWN}${name} (HTTP ${code:-000})\n"
-            else
-              is_slow=$(awk -v v="$t" 'BEGIN{print (v+0>5)?1:0}')
-              if [ "$is_slow" = "1" ]; then
-                SLOW="${SLOW}${name} (${t}s)\n"
+          if [ "$TEST_MODE" = "all_down" ]; then
+            for item in "${SITES[@]}"; do
+              name="${item%%|*}"
+              DOWN="${DOWN}${name} (HTTP 000 · 测试模拟)\n"
+            done
+          else
+            for item in "${SITES[@]}"; do
+              name="${item%%|*}"
+              url="${item#*|}"
+              resp=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" -L --max-time 15 "$url" 2>/dev/null)
+              code=${resp%% *}
+              t=${resp#* }
+              if [ "$code" != "200" ] || [ -z "$code" ]; then
+                DOWN="${DOWN}${name} (HTTP ${code:-000})\n"
+              else
+                is_slow=$(awk -v v="$t" 'BEGIN{print (v+0>5)?1:0}')
+                if [ "$is_slow" = "1" ]; then
+                  SLOW="${SLOW}${name} (${t}s)\n"
+                fi
               fi
-            fi
-          done
+            done
+          fi
 
           TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')
           if [ -n "$DOWN" ] || [ -n "$SLOW" ]; then
-            TEXT="【贺众监控警告】\n"
-            if [ -n "$DOWN" ]; then
-              TEXT="${TEXT}以下站点离线：\n${DOWN}"
+            if [ "$TEST_MODE" = "all_down" ]; then
+              TEXT="【贺众监控·例行测试】\n以下站点离线（模拟）：\n${DOWN}时间：${TS}"
+            else
+              TEXT="【贺众监控警告】\n"
+              if [ -n "$DOWN" ]; then
+                TEXT="${TEXT}以下站点离线：\n${DOWN}"
+              fi
+              if [ -n "$SLOW" ]; then
+                TEXT="${TEXT}以下站点响应缓慢(>5s)：\n${SLOW}"
+              fi
+              TEXT="${TEXT}时间：${TS}"
             fi
-            if [ -n "$SLOW" ]; then
-              TEXT="${TEXT}以下站点响应缓慢(>5s)：\n${SLOW}"
-            fi
-            TEXT="${TEXT}时间：${TS}"
             PAYLOAD=$(jq -n --arg t "$TEXT" '{msg_type:"text",content:{text:$t}}')
             RESP=$(curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD")
             echo "ALERT -> ${RESP}"
