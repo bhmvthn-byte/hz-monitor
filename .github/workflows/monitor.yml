@@ -27,21 +27,36 @@ jobs:
             "新闻中心|https://www.hzyinshuij.com/article.html"
           )
           DOWN=""
+          SLOW=""
           for item in "${SITES[@]}"; do
             name="${item%%|*}"
             url="${item#*|}"
-            code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 15 "$url" 2>/dev/null || echo "000")
-            if [ "$code" != "200" ]; then
-              DOWN="${DOWN}${name} (${code})\n"
+            resp=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" -L --max-time 15 "$url" 2>/dev/null)
+            code=${resp%% *}
+            t=${resp#* }
+            if [ "$code" != "200" ] || [ -z "$code" ]; then
+              DOWN="${DOWN}${name} (HTTP ${code:-000})\n"
+            else
+              is_slow=$(awk -v v="$t" 'BEGIN{print (v+0>5)?1:0}')
+              if [ "$is_slow" = "1" ]; then
+                SLOW="${SLOW}${name} (${t}s)\n"
+              fi
             fi
           done
 
           TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')
-          if [ -n "$DOWN" ]; then
-            TEXT="【贺众监控告警】检测到站点异常：\n${DOWN}\n时间：${TS}"
+          if [ -n "$DOWN" ] || [ -n "$SLOW" ]; then
+            TEXT="【贺众监控告警】\n"
+            if [ -n "$DOWN" ]; then
+              TEXT="${TEXT}以下站点离线：\n${DOWN}"
+            fi
+            if [ -n "$SLOW" ]; then
+              TEXT="${TEXT}以下站点响应缓慢(>5s)：\n${SLOW}"
+            fi
+            TEXT="${TEXT}时间：${TS}"
             PAYLOAD=$(jq -n --arg t "$TEXT" '{msg_type:"text",content:{text:$t}}')
             RESP=$(curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD")
             echo "ALERT -> ${RESP}"
           else
-            echo "OK: all 7 online"
+            echo "OK: all 7 online and fast"
           fi
