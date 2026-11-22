@@ -46,7 +46,7 @@ jobs:
 
           TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')
           if [ -n "$DOWN" ] || [ -n "$SLOW" ]; then
-            TEXT="【贺众监控告警】\n"
+            TEXT="【贺众监控警告】\n"
             if [ -n "$DOWN" ]; then
               TEXT="${TEXT}以下站点离线：\n${DOWN}"
             fi
