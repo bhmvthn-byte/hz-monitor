@@ -1,7 +1,7 @@
 // 贺众监控台 Service Worker
-// 缓存策略：页面文件优先从缓存加载（离线可用），其他资源走网络
+// 缓存策略：页面文件网络优先（失败回退缓存），其他资源走网络
 
-const CACHE_NAME = 'trae-monitor-v4';
+const CACHE_NAME = 'trae-monitor-v5';
 const ASSETS = [
   '/',
   '/index.html',
@@ -50,22 +50,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML 页面：缓存优先 + 网络更新（stale-while-revalidate）
+  // HTML 页面：网络优先，失败才回退缓存（保证每次打开都拿到最新内容）
   if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((cached) => {
-          const fetchPromise = fetch(event.request)
-            .then((response) => {
-              if (response && response.status === 200) {
-                cache.put(event.request, response.clone());
-              }
-              return response;
-            })
-            .catch(() => cached);
-          return cached || fetchPromise;
-        });
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
