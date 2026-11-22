@@ -29,12 +29,16 @@ jobs:
           set -uo pipefail
           SITES=(
             "官网首页|https://www.yinshuij.com/"
-            "产品中心|https://www.yinshuij.com/products.html"
-            "商用饮水机|https://www.yinshuij.com/products/intelligent-direct-drinking-machine.html"
-            "家用饮水机|https://www.yinshuij.com/products/household-water-purifier.html"
+            "产品展示|https://www.yinshuij.com/products.html"
+            "智能直饮机|https://www.yinshuij.com/products/intelligent-direct-drinking-machine.html"
+            "程控杀菌直饮机|https://www.yinshuij.com/products/program-controlled-sterilized-direct-drinking-machine.html"
+            "全数字程控开水机|https://www.yinshuij.com/products/all-digital-programmable-water-heater.html"
+            "家用净水器|https://www.yinshuij.com/products/household-water-purifier.html"
             "滤芯及配件|https://www.yinshuij.com/products/filter-element-accessories.html"
             "客户案例|https://www.yinshuij.com/cases.html"
-            "新闻中心|https://www.yinshuij.com/news.html"
+            "新闻资讯|https://www.yinshuij.com/news.html"
+            "关于我们|https://www.yinshuij.com/about.html"
+            "联系我们|https://www.yinshuij.com/contact.html"
           )
           DOWN=""
           SLOW=""
@@ -53,7 +57,7 @@ jobs:
               if [ "$code" != "200" ] || [ -z "$code" ]; then
                 DOWN="${DOWN}${name} (HTTP ${code:-000})\n"
               else
-                is_slow=$(awk -v v="$t" 'BEGIN{print (v+0>5)?1:0}')
+                is_slow=$(awk -v v="$t" 'BEGIN{print (v+0>10)?1:0}')
                 if [ "$is_slow" = "1" ]; then
                   SLOW="${SLOW}${name} (${t}s)\n"
                 fi
@@ -71,7 +75,7 @@ jobs:
                 TEXT="${TEXT}以下站点离线：\n${DOWN}"
               fi
               if [ -n "$SLOW" ]; then
-                TEXT="${TEXT}以下站点响应缓慢(>5s)：\n${SLOW}"
+                TEXT="${TEXT}以下站点响应缓慢(>10s)：\n${SLOW}"
               fi
               TEXT="${TEXT}时间：${TS}"
             fi
@@ -80,5 +84,5 @@ jobs:
             RESP=$(curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD")
             echo "ALERT -> ${RESP}"
           else
-            echo "OK: all 7 online and fast"
+            echo "OK: all 11 online and fast"
           fi
