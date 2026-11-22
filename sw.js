@@ -1,7 +1,7 @@
 // 贺众监控台 Service Worker
 // 缓存策略：页面文件优先从缓存加载（离线可用），其他资源走网络
 
-const CACHE_NAME = 'trae-monitor-v3';
+const CACHE_NAME = 'trae-monitor-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -70,12 +70,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 静态资源（图标、manifest 等）：缓存优先
+  // 静态资源（图标等）：缓存优先；manifest 走网络，确保桌面图标拿到最新启动地址
   if (
     url.pathname.endsWith('.jpg') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.json') ||
     url.pathname.endsWith('.ico')
   ) {
     event.respondWith(
