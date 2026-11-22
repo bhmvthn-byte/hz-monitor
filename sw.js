@@ -1,10 +1,10 @@
 // 贺众监控台 Service Worker
 // 缓存策略：页面文件优先从缓存加载（离线可用），其他资源走网络
 
-const CACHE_NAME = 'trae-monitor-v2';
+const CACHE_NAME = 'trae-monitor-v3';
 const ASSETS = [
   '/',
-  '/monitor-dashboard.html',
+  '/index.html',
   '/manifest.json',
   '/icon-180.png',
   '/icon-192.png',

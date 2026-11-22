@@ -2,7 +2,7 @@
   "name": "贺众官网监控台",
   "short_name": "贺众监控",
   "description": "贺众官网可用性实时监控 · 响应时间 · 可用率 · 事件日志",
-  "start_url": "/monitor-dashboard.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
