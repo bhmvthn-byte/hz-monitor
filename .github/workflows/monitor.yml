@@ -75,6 +75,7 @@ jobs:
               fi
               TEXT="${TEXT}时间：${TS}"
             fi
+            TEXT=$(printf '%b' "$TEXT")
             PAYLOAD=$(jq -n --arg t "$TEXT" '{msg_type:"text",content:{text:$t}}')
             RESP=$(curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD")
             echo "ALERT -> ${RESP}"
