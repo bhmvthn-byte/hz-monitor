@@ -2,7 +2,9 @@ name: 贺众官网监控
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/10 * * * *'    # 常规监控（每10分钟）
+    - cron: '0 16 * * *'      # 维护开始通知（UTC16:00 = 上海00:00）
+    - cron: '0 22 * * *'      # 维护结束通知（UTC22:00 = 上海06:00）
   workflow_dispatch:
     inputs:
       test_mode:
@@ -13,6 +15,7 @@ on:
         options:
           - normal
           - all_down
+          - maint_test
 
 permissions:
   contents: read
@@ -25,8 +28,45 @@ jobs:
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           TEST_MODE: ${{ github.event.inputs.test_mode || 'normal' }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -uo pipefail
+          TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')
+
+          send_feishu() {
+            local PAYLOAD
+            PAYLOAD=$(jq -n --arg t "$1" '{msg_type:"text",content:{text:$t}}')
+            curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD"
+          }
+
+          # —— 维护开始/结束通知（由精确 cron 触发）——
+          case "$SCHEDULE" in
+            "0 16 "*)
+              TEXT=$(printf '%b' "【贺众监控】\n维护开始：进入每日维护时段（00:00–06:00），暂停监控与告警。\n时间：${TS}")
+              echo "MAINT-START -> $(send_feishu "$TEXT")"
+              exit 0
+              ;;
+            "0 22 "*)
+              TEXT=$(printf '%b' "【贺众监控】\n维护结束：维护时段结束，监控与告警已恢复。\n时间：${TS}")
+              echo "MAINT-END -> $(send_feishu "$TEXT")"
+              exit 0
+              ;;
+          esac
+
+          # —— 手动测试维护通知 ——
+          if [ "$TEST_MODE" = "maint_test" ]; then
+            TEXT=$(printf '%b' "【贺众监控】\n维护通知测试：每日维护开始（00:00）与结束（06:00）会各发一条通知。\n时间：${TS}")
+            echo "MAINT-TEST -> $(send_feishu "$TEXT")"
+            exit 0
+          fi
+
+          # —— 维护时段内跳过常规检测（上海 00:00–06:00）——
+          H=$(TZ=Asia/Shanghai date '+%-H')
+          if [ "$H" -lt 6 ]; then
+            echo "MAINT: 维护时段内，跳过检测"
+            exit 0
+          fi
+
           SITES=(
             "官网首页|https://www.yinshuij.com/"
             "产品展示|https://www.yinshuij.com/products.html"
@@ -65,7 +105,6 @@ jobs:
             done
           fi
 
-          TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')
           if [ -n "$DOWN" ] || [ -n "$SLOW" ]; then
             if [ "$TEST_MODE" = "all_down" ]; then
               TEXT="【贺众监控·例行测试】\n以下站点离线（模拟）：\n${DOWN}时间：${TS}"
@@ -80,9 +119,7 @@ jobs:
               TEXT="${TEXT}时间：${TS}"
             fi
             TEXT=$(printf '%b' "$TEXT")
-            PAYLOAD=$(jq -n --arg t "$TEXT" '{msg_type:"text",content:{text:$t}}')
-            RESP=$(curl -s -X POST "$FEISHU_WEBHOOK" -H "Content-Type: application/json" -d "$PAYLOAD")
-            echo "ALERT -> ${RESP}"
+            echo "ALERT -> $(send_feishu "$TEXT")"
           else
             echo "OK: all 11 online and fast"
           fi
